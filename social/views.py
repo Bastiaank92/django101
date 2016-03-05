@@ -1,5 +1,5 @@
 from django.contrib.auth import authenticate, login
-from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest
+from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest, HttpResponseForbidden
 from django.core.urlresolvers import reverse
 from django.shortcuts import render
 from social.models import Post
@@ -12,9 +12,6 @@ def index(request):
     return render(request, 'social/index.html')
 	
 def social_login(request):
-    pass
-	
-def social_login(request):
    check = _check_post_request(request, ['username', 'password'])
    if check[0]:
        user = authenticate(username=request.POST['username'], password=request.POST['password']) 
@@ -25,11 +22,20 @@ def social_login(request):
            return HttpResponseBadRequest("The combination of username and password does not exist.")
    else:
        return HttpResponseBadRequest(check[1])
-
-@login_required	
+	   
+@login_required
 def home(request):
-    posts = Post.objects.all().order_by('-date_time')
-    return render(request, 'social/home.html', {'posts': posts})
+	if request.method == 'GET':
+		posts = Post.objects.all()
+	elif request.method == 'POST':
+		check = _check_post_request(request, ['search_terms'])
+		if check[0]:
+			search_term = request.POST['search_terms']
+			posts = Post.objects.filter(text__icontains=search_term)
+		else:
+			return HttpResponseBadRequest(check[1])
+	posts = posts.order_by('-date_time')
+	return render(request, 'social/home.html', {'posts': posts, 'user': request.user})
 	
 @login_required
 def add_post(request):
@@ -76,3 +82,12 @@ def add_comment(request):
         return HttpResponseRedirect(reverse('social:home'))
     else:
         return HttpResponseBadRequest(check[1])
+		
+@login_required
+def delete_post(request, post_id):
+    post = Post.objects.get(pk=post_id)
+    if request.user != post.poster:
+        return HttpResponseForbidden("You can only delete your own posts!")
+    else:
+        post.delete()
+        return HttpResponseRedirect(reverse('social:home'))
