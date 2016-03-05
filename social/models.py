@@ -10,7 +10,9 @@ class Post(models.Model):
     photo = models.ImageField(null=True, blank=True)
 
 class Comment(models.Model):
-    text = models.TextField()
-    poster = models.ForeignKey(User)
-    post = models.ForeignKey(Post)
-    date_time = models.DateTimeField(auto_now=True)  
+	text = models.TextField()
+	poster = models.ForeignKey(User)
+	post = models.ForeignKey(Post)
+	date_time = models.DateTimeField(auto_now=True)
+	class Meta:
+	    ordering = ['-date_time']
